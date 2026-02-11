@@ -1,6 +1,7 @@
-
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct {
     char nome[30];
@@ -8,79 +9,182 @@ typedef struct {
     int tropas;
 } Territorio;
 
+// --- Sumário das Funções ---
+Territorio* alocarMapa(int qtd);
+void inicializarTerritorios(Territorio* mapa, int qtd);
+void liberarMemoria(Territorio* mapa);
+void exibirMenuPrincipal();
+void exibirMapa(const Territorio* mapa, int qtd);
+void faseDeAtaque(Territorio* mapa, int qtd);
+void simularAtaque(Territorio* atacante, Territorio* defensor);
+
+// --- Função Principal ---
 int main() {
-    Territorio territorios[5];
-    int i;
+    Territorio* mapa = NULL;
+    int qtdTerritorios;
+    int opcao = 0;
 
-    printf("=== SISTEMA DE CADASTRO DE TERRITÓRIOS ===\n");
-    printf("Por favor, insira os dados dos 5 territórios abaixo.\n");
+    srand(time(NULL));
 
-    for (i = 0; i < 5; i++) {
-        printf("\n--- Território %d ---\n", i + 1);
+    printf("=== CONFIGURAÇÃO DO MAPA ===\n");
+    printf("Quantos territórios estarão em jogo? ");
+    scanf("%d", &qtdTerritorios);
 
-        printf("Nome do território: ");
-        scanf(" %[^\n]", territorios[i].nome); 
-
-        printf("Cor do exército: ");
-        scanf(" %[^\n]", territorios[i].cor);
-
-        printf("Quantidade de tropas: ");
-        scanf("%d", &territorios[i].tropas);
+    mapa = alocarMapa(qtdTerritorios);
+    if (mapa == NULL) {
+        printf("Erro crítico: Falha na alocação de memória.\n");
+        return 1;
     }
 
-    printf("\n\n=== MAPA DO MUNDO ATUAL ===\n");
-    printf("%-30s | %-10s | %s\n", "NOME", "COR", "TROPAS");
-    printf("----------------------------------------------------------\n");
+    // 2. Cadastro Inicial
+    inicializarTerritorios(mapa, qtdTerritorios);
 
-    for (i = 0; i < 5; i++) {
-        printf("%-30s | %-10s | %d\n", 
-               territorios[i].nome, 
-               territorios[i].cor, 
-               territorios[i].tropas);
-    }
+    // 3. Loop do Jogo
+    do {
+        exibirMapa(mapa, qtdTerritorios);
+        exibirMenuPrincipal();
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                faseDeAtaque(mapa, qtdTerritorios);
+                break;
+            case 2:
+                printf("Encerrando a simulação...\n");
+                break;
+            default:
+                printf("Opção inválida!\n");
+        }
+        
+        printf("\nPressione Enter para continuar...");
+        getchar(); getchar(); 
+
+    } while (opcao != 2);
+
+    // 4. Liberação de Memória
+    liberarMemoria(mapa);
+    printf("Memória liberada. Jogo finalizado com sucesso.\n");
 
     return 0;
 }
 
 // --- Implementação das Funções ---
 
-// alocarMapa():
-// Aloca dinamicamente a memória para o vetor de territórios usando calloc.
-// Retorna um ponteiro para a memória alocada ou NULL em caso de falha.
+// Aloca dinamicamente a memória para o vetor de territórios usando calloc
+Territorio* alocarMapa(int qtd) {
+    // calloc inicializa a memória com zero, o que é mais seguro
+    Territorio* t = (Territorio*) calloc(qtd, sizeof(Territorio));
+    return t;
+}
 
-// inicializarTerritorios():
-// Preenche os dados iniciais de cada território no mapa (nome, cor do exército, número de tropas).
-// Esta função modifica o mapa passado por referência (ponteiro).
+// Preenche os dados iniciais de cada território
+void inicializarTerritorios(Territorio* mapa, int qtd) {
+    printf("\n--- CADASTRO DOS TERRITÓRIOS ---\n");
+    for (int i = 0; i < qtd; i++) {
+        printf("Território %d:\n", i + 1);
+        
+        printf(" Nome: ");
+        scanf(" %[^\n]", mapa[i].nome); 
+        
+        printf(" Cor do Exército: ");
+        scanf(" %[^\n]", mapa[i].cor);
+        
+        printf(" Quantidade de Tropas: ");
+        scanf("%d", &mapa[i].tropas);
+        printf("-----------------------------\n");
+    }
+}
 
-// liberarMemoria():
-// Libera a memória previamente alocada para o mapa usando free.
+// Liberar memória
+void liberarMemoria(Territorio* mapa) {
+    if (mapa != NULL) {
+        free(mapa);
+    }
+}
 
-// exibirMenuPrincipal():
-// Imprime na tela o menu de ações disponíveis para o jogador.
+// Imprime o menu de ações
+void exibirMenuPrincipal() {
+    printf("\n=== MENU DE AÇÕES ===\n");
+    printf("1. Atacar Território\n");
+    printf("2. Sair do Jogo\n");
+    printf("Escolha uma opção: ");
+}
 
-// exibirMapa():
-// Mostra o estado atual de todos os territórios no mapa, formatado como uma tabela.
-// Usa 'const' para garantir que a função apenas leia os dados do mapa, sem modificá-los.
+// Mostra o estado atual de todos os territórios 
+void exibirMapa(const Territorio* mapa, int qtd) {
+    printf("\n%-4s | %-20s | %-10s | %s\n", "ID", "NOME", "COR", "TROPAS");
+    printf("------------------------------------------------------\n");
+    for (int i = 0; i < qtd; i++) {
+        printf("%-4d | %-20s | %-10s | %d\n", 
+               i + 1, mapa[i].nome, mapa[i].cor, mapa[i].tropas);
+    }
+    printf("------------------------------------------------------\n");
+}
 
-// exibirMissao():
-// Exibe a descrição da missão atual do jogador com base no ID da missão sorteada.
+// Gerencia a interface de ataque
+void faseDeAtaque(Territorio* mapa, int qtd) {
+    int idAtk, idDef;
 
-// faseDeAtaque():
-// Gerencia a interface para a ação de ataque, solicitando ao jogador os territórios de origem e destino.
-// Chama a função simularAtaque() para executar a lógica da batalha.
+    printf("\n--- FASE DE ATAQUE ---\n");
+    printf("Informe o ID do território ATACANTE: ");
+    scanf("%d", &idAtk);
+    
+    printf("Informe o ID do território DEFENSOR: ");
+    scanf("%d", &idDef);
 
-// simularAtaque():
-// Executa a lógica de uma batalha entre dois territórios.
-// Realiza validações, rola os dados, compara os resultados e atualiza o número de tropas.
-// Se um território for conquistado, atualiza seu dono e move uma tropa.
+    // Validação de índices (ajuste de 1-based para 0-based)
+    int idxAtk = idAtk - 1;
+    int idxDef = idDef - 1;
 
-// sortearMissao():
-// Sorteia e retorna um ID de missão aleatório para o jogador.
+    if (idxAtk < 0 || idxAtk >= qtd || idxDef < 0 || idxDef >= qtd) {
+        printf("Erro: IDs de território inválidos!\n");
+        return;
+    }
 
-// verificarVitoria():
-// Verifica se o jogador cumpriu os requisitos de sua missão atual.
-// Implementa a lógica para cada tipo de missão (destruir um exército ou conquistar um número de territórios).
-// Retorna 1 (verdadeiro) se a missão foi cumprida, e 0 (falso) caso contrário.
+    // Passagem por referência (ponteiros) para a função lógica
+    simularAtaque(&mapa[idxAtk], &mapa[idxDef]);
+}
 
-// limparBufferEntrada():
-// Função utilitária para limpar o buffer de entrada do teclado (stdin), evitando problemas com leituras consecutivas de scanf e getchar.
+// Executa a lógica da batalha (Regras de Negócio)
+void simularAtaque(Territorio* atacante, Territorio* defensor) {
+    // Impedir que ataque a si mesmo
+    if (strcmp(atacante->cor, defensor->cor) == 0) {
+        printf("\n[!] Ação bloqueada: Você não pode atacar um território aliado (%s)!\n", atacante->cor);
+        return;
+    }
+
+    // Impedir que ataque sem tropas
+    if (atacante->tropas <= 1) {
+        printf("\n[!] Ação bloqueada: %s não tem tropas suficientes para atacar (Mínimo >= 1).\n", atacante->nome);
+        return;
+    }
+
+    printf("\nIniciando batalha: %s (Atq) vs %s (Def)...\n", atacante->nome, defensor->nome);
+
+    // Simular batalha (1 a 6)
+    int dadoAtk = (rand() % 6) + 1;
+    int dadoDef = (rand() % 6) + 1;
+
+    printf("Dados rolados -> Atacante: [%d] | Defensor: [%d]\n", dadoAtk, dadoDef);
+
+    // Resultado batalha
+    if (dadoAtk > dadoDef) {
+        printf(">>> VITÓRIA DO ATACANTE! <<<\n");
+        printf("O território %s foi conquistado pelo exército %s.\n", defensor->nome, atacante->cor);
+
+        strcpy(defensor->cor, atacante->cor); 
+        
+        int tropasMovidas = atacante->tropas / 2;
+        defensor->tropas = tropasMovidas;
+        atacante->tropas -= tropasMovidas; // A outra metade fica
+
+    } else {
+        printf(">>> DEFESA BEM SUCEDIDA! <<<\n");
+        printf("O atacante perdeu a batalha e sofreu baixas.\n");
+        
+        // Penalidade por derrota
+        if (atacante->tropas > 0) {
+            atacante->tropas -= 1; // Perde 1 tropa
+        }
+    }
+}
